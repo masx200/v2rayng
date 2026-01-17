@@ -859,7 +859,7 @@ object V2rayConfigManager {
                     probeInterval = "3m",
                     enableConcurrency = true
                 )
-            } else {
+            } else if (config.policyGroupType == "1") {
                 val balancer = V2rayConfig.RoutingBean.BalancerBean(
                     tag = "proxy-round",
                     selector = listOf("proxy-"),
@@ -877,6 +877,19 @@ object V2rayConfigManager {
                         timeout = "30s"
                     )
                 )
+            } else {
+                // Random strategy (policyGroupType == "2")
+                val balancer = V2rayConfig.RoutingBean.BalancerBean(
+                    tag = "proxy-round",
+                    selector = listOf("proxy-"),
+                    strategy = V2rayConfig.RoutingBean.StrategyObject(
+                        type = "random",
+                        settings = V2rayConfig.RoutingBean.StrategySettingsObject(
+                            expected = 1
+                        )
+                    )
+                )
+                v2rayConfig.routing.balancers = listOf(balancer)
             }
 
             if (v2rayConfig.routing.domainStrategy == "IPIfNonMatch") {
