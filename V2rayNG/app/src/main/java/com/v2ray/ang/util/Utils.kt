@@ -6,7 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration.UI_MODE_NIGHT_MASK
 import android.content.res.Configuration.UI_MODE_NIGHT_NO
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.LocaleList
 import android.provider.Settings
 import android.text.Editable
@@ -19,6 +21,8 @@ import androidx.core.net.toUri
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.LOOPBACK
 import com.v2ray.ang.BuildConfig
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -86,17 +90,106 @@ object Utils {
 
     /**
      * Set text to the clipboard.
+     * If the content exceeds 1MB, it will be saved to a file instead.
      *
      * @param context The context to use.
      * @param content The text to set to the clipboard.
+     * @param fileName The file name to use if saving to file (optional).
+     * @return The Uri of the saved file if content was saved to file, null otherwise.
      */
-    fun setClipboard(context: Context, content: String) {
-        try {
+    fun setClipboard(context: Context, content: String, fileName: String? = null): Uri? {
+        return try {
+            // Check if content size exceeds 1MB
+            val contentSize = content.toByteArray(Charsets.UTF_8).size
+            val maxClipboardSize = 1024 * 1024 // 1MB
+
+            if (contentSize > maxClipboardSize && fileName != null) {
+                // Save to file instead of clipboard
+                val file = saveToFile(context, content, fileName)
+                if (file != null) {
+                    // Share the file
+                    shareFile(context, file)
+                    return Uri.fromFile(file)
+                }
+                return null
+            }
+
+            // Normal clipboard operation
             val cmb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clipData = ClipData.newPlainText(null, content)
             cmb.setPrimaryClip(clipData)
+            null
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to set clipboard content", e)
+            null
+        }
+    }
+
+    /**
+     * Save content to a file in external storage.
+     *
+     * @param context The context to use.
+     * @param content The content to save.
+     * @param fileName The name of the file.
+     * @return The saved File, or null if saving failed.
+     */
+    fun saveToFile(context: Context, content: String, fileName: String): File? {
+        return try {
+            val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+            val v2rayDir = File(documentsDir, "v2rayNG")
+            if (!v2rayDir.exists()) {
+                v2rayDir.mkdirs()
+            }
+
+            val file = File(v2rayDir, fileName)
+            FileOutputStream(file).use { fos ->
+                fos.write(content.toByteArray(Charsets.UTF_8))
+            }
+            file
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to save file: $fileName", e)
+            null
+        }
+    }
+
+    /**
+     * Share a file using the system share dialog.
+     *
+     * @param context The context to use.
+     * @param file The file to share.
+     */
+    fun shareFile(context: Context, file: File) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_config_file)))
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to share file", e)
+        }
+    }
+
+    /**
+     * Format a timestamp (milliseconds since epoch) into a date string.
+     * Returns empty string for null or non-positive timestamps.
+     * @param ts timestamp in milliseconds or null
+     * @param pattern SimpleDateFormat pattern, default "yyyy-MM-dd HH:mm"
+     */
+    fun formatTimestamp(ts: Long?, pattern: String = "yyyy-MM-dd HH:mm", locale: Locale = Locale.getDefault()): String {
+        if (ts == null || ts <= 0L) return ""
+        return try {
+            val sdf = SimpleDateFormat(pattern, locale)
+            sdf.format(Date(ts))
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to format timestamp", e)
+            ""
         }
     }
 

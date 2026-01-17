@@ -99,17 +99,25 @@ object AngConfigManager {
     }
 
     /**
-     * Shares the full content of the configuration to the clipboard.
+     * Shares the full content of the configuration to the clipboard or file.
+     * If the content exceeds 1MB, it will be saved to a file instead.
      *
      * @param context The context.
      * @param guid The GUID of the configuration.
-     * @return The result code.
+     * @return The result code (0 for success, -1 for failure).
      */
     fun shareFullContent2Clipboard(context: Context, guid: String?): Int {
         try {
             if (guid == null) return -1
             val result = V2rayConfigManager.getV2rayConfig(context, guid)
             if (result.status) {
+                val fileName = "v2ray_config_${System.currentTimeMillis()}.json"
+                val uri = Utils.setClipboard(context, result.content, fileName)
+                if (uri != null) {
+                    // Content was saved to file and shared
+                    return 0
+                }
+                // Fallback to normal clipboard
                 Utils.setClipboard(context, result.content)
             } else {
                 return -1

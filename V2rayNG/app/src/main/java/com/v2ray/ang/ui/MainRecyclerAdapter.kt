@@ -239,7 +239,8 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
     }
 
     /**
-     * Shares full server configuration content to clipboard
+     * Shares full server configuration content to clipboard or file.
+     * If the content exceeds 1MB, it will be saved to a file.
      * @param guid The server unique identifier
      */
     private fun shareFullContent(guid: String) {
@@ -247,7 +248,23 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
             val result = AngConfigManager.shareFullContent2Clipboard(mActivity, guid)
             launch(Dispatchers.Main) {
                 if (result == 0) {
-                    mActivity.toastSuccess(R.string.toast_success)
+                    // Check if the file was saved (large file) or copied to clipboard (small file)
+                    val configContent = try {
+                        MmkvManager.decodeServerConfig(guid)?.let { config ->
+                            MmkvManager.decodeServerRaw(guid)
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    val contentSize = configContent?.toByteArray(Charsets.UTF_8)?.size ?: 0
+                    val maxClipboardSize = 1024 * 1024 // 1MB
+
+                    if (contentSize > maxClipboardSize) {
+                        mActivity.toastSuccess(R.string.toast_config_exported_to_file)
+                    } else {
+                        mActivity.toastSuccess(R.string.toast_success)
+                    }
                 } else {
                     mActivity.toastError(R.string.toast_failure)
                 }

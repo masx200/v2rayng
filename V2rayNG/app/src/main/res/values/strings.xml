@@ -98,6 +98,12 @@
     <string name="toast_require_file_manager">Please install a File Manager.</string>
     <string name="server_customize_config">Customize config</string>
     <string name="toast_config_file_invalid">Invalid config</string>
+
+    <!-- Large config file handling -->
+    <string name="large_config_warning_title">Large Configuration File</string>
+    <string name="large_config_warning_message">This configuration file is %1$s in size. Large files may cause performance issues when editing. Consider using a smaller configuration for better performance.</string>
+    <string name="toast_config_exported_to_file">Configuration exported to file</string>
+    <string name="share_config_file">Share Configuration File</string>
     <string name="server_lab_content">Content</string>
     <string name="toast_none_data_clipboard">There is no data in the clipboard</string>
     <string name="toast_invalid_url">Invalid URL</string>

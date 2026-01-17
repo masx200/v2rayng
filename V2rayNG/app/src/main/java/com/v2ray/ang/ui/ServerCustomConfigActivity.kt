@@ -29,6 +29,23 @@ class ServerCustomConfigActivity : BaseActivity() {
                 && editGuid == MmkvManager.getSelectServer()
     }
 
+    companion object {
+        private const val MAX_RECOMMENDED_SIZE = 1024 * 1024 // 1MB
+    }
+
+    /**
+     * Format file size to human readable format
+     * @param bytes Size in bytes
+     * @return Formatted size string
+     */
+    private fun formatFileSize(bytes: Int): String {
+        return when {
+            bytes < 1024 -> "$bytes B"
+            bytes < 1024 * 1024 -> String.format("%.2f KB", bytes / 1024.0)
+            else -> String.format("%.2f MB", bytes / (1024.0 * 1024.0))
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //setContentView(binding.root)
@@ -53,6 +70,19 @@ class ServerCustomConfigActivity : BaseActivity() {
         binding.etRemarks.text = Utils.getEditable(config.remarks)
         val raw = MmkvManager.decodeServerRaw(editGuid)
         val configContent = raw.orEmpty()
+
+        // Check if content size exceeds 1MB and show warning
+        val contentSize = configContent.toByteArray(Charsets.UTF_8).size
+        val maxRecommendedSize = 1024 * 1024 // 1MB
+
+        if (contentSize > maxRecommendedSize) {
+            // Show warning dialog for large files
+            AlertDialog.Builder(this)
+                .setTitle(R.string.large_config_warning_title)
+                .setMessage(getString(R.string.large_config_warning_message, formatFileSize(contentSize)))
+                .setPositiveButton(R.string.ok, null)
+                .show()
+        }
 
         binding.editor.setTextContent(Utils.getEditable(configContent))
         return true
