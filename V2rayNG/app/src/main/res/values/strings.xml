@@ -102,6 +102,9 @@
     <!-- Large config file handling -->
     <string name="large_config_warning_title">Large Configuration File</string>
     <string name="large_config_warning_message">This configuration file is %1$s in size. Large files may cause performance issues when editing. Consider using a smaller configuration for better performance.</string>
+    <string name="use_external_editor">Use External Editor</string>
+    <string name="use_builtin_editor">Use Built-in Editor</string>
+    <string name="toast_no_editor_found">No suitable editor found</string>
     <string name="toast_config_exported_to_file">Configuration exported to file</string>
     <string name="share_config_file">Share Configuration File</string>
     <string name="server_lab_content">Content</string>

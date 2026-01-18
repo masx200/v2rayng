@@ -30,6 +30,8 @@ import com.v2ray.ang.helper.ItemTouchHelperAdapter
 import com.v2ray.ang.helper.ItemTouchHelperViewHolder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.File
+import java.nio.charset.Charset
 import java.util.Collections
 
 class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<MainRecyclerAdapter.BaseViewHolder>(), ItemTouchHelperAdapter {
@@ -273,8 +275,45 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
     }
 
     /**
+     * Opens configuration file with external editor
+     * Used for large configuration files to avoid app freezing
+     * @param guid The server unique identifier
+     * @param configContent The configuration content
+     */
+    private fun openWithExternalEditor(guid: String, configContent: String) {
+        try {
+            // Create a temporary file for the configuration
+            val tempFile = java.io.File(mActivity.cacheDir, "temp_config_${guid}.json")
+            tempFile.writeText(configContent, Charsets.UTF_8)
+
+            // Create intent to open with external editor
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                mActivity,
+                "${mActivity.packageName}.fileprovider",
+                tempFile
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/json")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            if (intent.resolveActivity(mActivity.packageManager) != null) {
+                mActivity.startActivity(Intent.createChooser(intent, "Open with"))
+            } else {
+                mActivity.toast(R.string.toast_no_editor_found)
+            }
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to open with external editor", e)
+            mActivity.toastError(R.string.toast_failure)
+        }
+    }
+
+    /**
      * Edits server configuration
      * Opens appropriate editing interface based on configuration type
+     * For large configuration files, uses external editor to avoid app freezing
      * @param guid The server unique identifier
      * @param profile The server configuration
      */
@@ -282,12 +321,47 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
         val intent = Intent().putExtra("guid", guid)
             .putExtra("isRunning", isRunning)
             .putExtra("createConfigType", profile.configType.value)
+
         if (profile.configType == EConfigType.CUSTOM) {
-            mActivity.startActivity(intent.setClass(mActivity, ServerCustomConfigActivity::class.java))
+            // Check if config content is too large
+            val configContent = MmkvManager.decodeServerRaw(guid)
+            val contentSize = configContent?.toByteArray(Charsets.UTF_8)?.size ?: 0
+            val maxRecommendedSize = 1024 * 1024 // 1MB
+
+            if (contentSize > maxRecommendedSize) {
+                // Show dialog to choose between built-in editor and external editor
+                AlertDialog.Builder(mActivity)
+                    .setTitle(R.string.large_config_warning_title)
+                    .setMessage(mActivity.getString(R.string.large_config_warning_message,
+                        formatFileSize(contentSize)))
+                    .setPositiveButton(R.string.use_external_editor) { _, _ ->
+                        openWithExternalEditor(guid, configContent.orEmpty())
+                    }
+                    .setNegativeButton(R.string.use_builtin_editor) { _, _ ->
+                        mActivity.startActivity(intent.setClass(mActivity, ServerCustomConfigActivity::class.java))
+                    }
+                    .setNeutralButton(android.R.string.cancel, null)
+                    .show()
+            } else {
+                mActivity.startActivity(intent.setClass(mActivity, ServerCustomConfigActivity::class.java))
+            }
         } else if (profile.configType == EConfigType.POLICYGROUP) {
             mActivity.startActivity(intent.setClass(mActivity, ServerGroupActivity::class.java))
         } else {
             mActivity.startActivity(intent.setClass(mActivity, ServerActivity::class.java))
+        }
+    }
+
+    /**
+     * Formats file size to human readable format
+     * @param bytes Size in bytes
+     * @return Formatted size string
+     */
+    private fun formatFileSize(bytes: Int): String {
+        return when {
+            bytes < 1024 -> "$bytes B"
+            bytes < 1024 * 1024 -> String.format("%.2f KB", bytes / 1024.0)
+            else -> String.format("%.2f MB", bytes / (1024.0 * 1024.0))
         }
     }
 
