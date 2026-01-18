@@ -119,11 +119,23 @@ jobs:
         name: x86-apk
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*x86*.apk
 
+    - name: Set release tag
+      id: set_release_tag
+      run: |
+        if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+          echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+        else
+          current_time=$(date +%Y%m%d%H%M%S)
+          git_hash=$(git rev-parse --short HEAD)
+          tag="cicd-${current_time}-${git_hash}"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "Generated auto release tag: $tag"
+        fi
+
     - name: Upload to release
       uses: svenstaro/upload-release-action@v2
-      if: github.event.inputs.release_tag != ''
       with:
         file: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*.apk
-        tag: ${{ github.event.inputs.release_tag }}
+        tag: ${{ steps.set_release_tag.outputs.tag }}
         file_glob: true
         prerelease: true
