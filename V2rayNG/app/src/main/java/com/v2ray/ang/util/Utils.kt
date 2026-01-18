@@ -21,6 +21,7 @@ import androidx.core.net.toUri
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.LOOPBACK
 import com.v2ray.ang.BuildConfig
+import com.v2ray.ang.R
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -181,6 +182,7 @@ object Utils {
      * Returns empty string for null or non-positive timestamps.
      * @param ts timestamp in milliseconds or null
      * @param pattern SimpleDateFormat pattern, default "yyyy-MM-dd HH:mm"
+     * @param locale The locale to use for formatting
      */
     fun formatTimestamp(ts: Long?, pattern: String = "yyyy-MM-dd HH:mm", locale: Locale = Locale.getDefault()): String {
         if (ts == null || ts <= 0L) return ""
@@ -642,23 +644,6 @@ object Utils {
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to check if IP is in CIDR", e)
             return false
-        }
-    }
-
-    /**
-     * Format a timestamp (milliseconds since epoch) into a date string.
-     * Returns empty string for null or non-positive timestamps.
-     * @param ts timestamp in milliseconds or null
-     * @param pattern SimpleDateFormat pattern, default "yyyy-MM-dd HH:mm"
-     */
-    fun formatTimestamp(ts: Long?, pattern: String = "yyyy-MM-dd HH:mm", locale: Locale = Locale.getDefault()): String {
-        if (ts == null || ts <= 0L) return ""
-        return try {
-            val sdf = SimpleDateFormat(pattern, locale)
-            sdf.format(Date(ts))
-        } catch (e: Exception) {
-            Log.e(AppConfig.TAG, "Failed to format timestamp", e)
-            ""
         }
     }
 }

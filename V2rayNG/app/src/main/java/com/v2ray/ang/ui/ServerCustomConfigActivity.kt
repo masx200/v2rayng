@@ -80,7 +80,7 @@ class ServerCustomConfigActivity : BaseActivity() {
             AlertDialog.Builder(this)
                 .setTitle(R.string.large_config_warning_title)
                 .setMessage(getString(R.string.large_config_warning_message, formatFileSize(contentSize)))
-                .setPositiveButton(R.string.ok, null)
+                .setPositiveButton(android.R.string.ok, null)
                 .show()
         }
 
