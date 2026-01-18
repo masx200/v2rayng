@@ -1,7 +1,7 @@
 # Ignore data and key store files
 *.dat
 *.jks
-
+android_keystore_base64.txt
 # Ignore output JSON file
 V2rayNG/app/release/output.json
 
