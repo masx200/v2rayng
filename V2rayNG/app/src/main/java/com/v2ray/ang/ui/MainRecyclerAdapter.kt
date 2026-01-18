@@ -286,18 +286,19 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
             val tempFile = java.io.File(mActivity.cacheDir, "temp_config_${guid}.json")
             tempFile.writeText(configContent, Charsets.UTF_8)
 
-            // Get content URI using FileProvider
+            // Use the same FileProvider authority as BackupActivity for consistency
             val uri = androidx.core.content.FileProvider.getUriForFile(
                 mActivity,
-                "${mActivity.packageName}.fileprovider",
+                "${mActivity.packageName}.cache",
                 tempFile
             )
 
             // Use ACTION_SEND to share the file with external apps
+            // Match the implementation from BackupActivity: use setFlags instead of addFlags
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/json"
+                setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
             // Show chooser dialog to let user select an app
