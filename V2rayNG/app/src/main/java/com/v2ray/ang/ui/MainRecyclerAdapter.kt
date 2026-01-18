@@ -275,7 +275,7 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
     }
 
     /**
-     * Opens configuration file with external editor
+     * Opens configuration file with external editor using Android's share system
      * Used for large configuration files to avoid app freezing
      * @param guid The server unique identifier
      * @param configContent The configuration content
@@ -286,24 +286,22 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
             val tempFile = java.io.File(mActivity.cacheDir, "temp_config_${guid}.json")
             tempFile.writeText(configContent, Charsets.UTF_8)
 
-            // Create intent to open with external editor
+            // Get content URI using FileProvider
             val uri = androidx.core.content.FileProvider.getUriForFile(
                 mActivity,
                 "${mActivity.packageName}.fileprovider",
                 tempFile
             )
 
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/json")
+            // Use ACTION_SEND to share the file with external apps
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            if (intent.resolveActivity(mActivity.packageManager) != null) {
-                mActivity.startActivity(Intent.createChooser(intent, "Open with"))
-            } else {
-                mActivity.toast(R.string.toast_no_editor_found)
-            }
+            // Show chooser dialog to let user select an app
+            mActivity.startActivity(Intent.createChooser(shareIntent, mActivity.getString(R.string.open_with_editor)))
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to open with external editor", e)
             mActivity.toastError(R.string.toast_failure)
